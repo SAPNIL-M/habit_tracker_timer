@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Profile Stopwatch Gate",
   "version": "1.0.0",
-  "description": "Locks the local profile stopwatch to the sapnilm.working@gmail.com Chrome profile and reports when that profile is in use.",
+  "description": "Locks the local profile stopwatch to one specific Chrome profile and reports when that profile is in use.",
   "permissions": ["identity", "storage", "alarms"],
   "background": { "service_worker": "background.js" },
   "content_scripts": [

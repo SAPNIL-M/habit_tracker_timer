@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 server/stopwatch.db
+server/config.json
+*.log
+.freebuff/

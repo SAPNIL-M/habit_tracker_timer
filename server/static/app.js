@@ -1,14 +1,14 @@
 /* Profile stopwatch page.
  * - Gate: asks the Chrome extension (via postMessage) for the profile identity
- *   and API token. Without a valid sapnilm.working@gmail.com profile, the page
- *   is locked.
+ *   and API token. The authorized email comes from the backend
+ *   (server/config.json). Without a matching profile, the page is locked.
  * - While visible, sends a heartbeat every couple of seconds so the backend
  *   knows the profile is in use.
  * - Displays the live total: backend state + local ticking between polls.
  */
-const EXPECTED_EMAIL = "sapnilm.working@gmail.com";
 const HEARTBEAT_MS = 2000;
 const POLL_MS = 1000;
+let EXPECTED_EMAIL = "";
 
 const state = {
   token: null,
@@ -71,17 +71,28 @@ window.addEventListener("message", (e) => {
   }
 });
 
-requestGate();
-setTimeout(() => {
-  if (!state.gateOk && !state.locked) {
-    showGateLocked(
-      "This stopwatch only works in the Chrome profile signed in as " +
-      EXPECTED_EMAIL +
-      ". Open it there and make sure the “Profile Stopwatch Gate” extension is installed " +
-      "(chrome://extensions → Developer mode → Load unpacked → the extension folder)."
-    );
+async function init() {
+  // The authorized email lives on the backend (server/config.json), so the
+  // page never hardcodes personal info. Fetch it before starting the gate.
+  try {
+    const cfg = await (await fetch("/api/config")).json();
+    EXPECTED_EMAIL = (cfg.expected_email || "").toLowerCase();
+  } catch {
+    /* backend offline; the status line will say so */
   }
-}, 4000);
+  requestGate();
+  setTimeout(() => {
+    if (!state.gateOk && !state.locked) {
+      showGateLocked(
+        "This stopwatch only works in the Chrome profile configured on the backend " +
+        "(server/config.json). Open it there and make sure the “Profile Stopwatch Gate” " +
+        "extension is installed (chrome://extensions → Developer mode → Load unpacked " +
+        "→ the extension folder)."
+      );
+    }
+  }, 4000);
+}
+init();
 
 // ---------------------------------------------------------------- backend
 

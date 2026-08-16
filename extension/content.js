@@ -1,8 +1,6 @@
 /* Injected into the stopwatch page. Bridges the page and the background
  * service worker: on request (and on load), fetch the profile identity +
  * token and hand them to the page via window.postMessage. */
-const EXPECTED_EMAIL = "sapnilm.working@gmail.com";
-
 async function deliver() {
   try {
     const info = await chrome.runtime.sendMessage({ type: "gate-info" });

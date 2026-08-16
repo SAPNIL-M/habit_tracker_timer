@@ -2,8 +2,8 @@
  *
  * Responsibilities:
  *  1. Identity gate: read this Chrome profile's email via
- *     chrome.identity.getProfileUserInfo() and only proceed if it is
- *     sapnilm.working@gmail.com.
+ *     chrome.identity.getProfileUserInfo() and only proceed if it matches the
+ *     email the backend configures (server/config.json on the backend).
  *  2. Liveness: report to the backend whether this profile has at least one
  *     window open that isn't minimized. "Profile in use" == any non-minimized
  *     window exists, so the stopwatch keeps counting while you work in other
@@ -13,7 +13,6 @@
  *  3. Token: generate a random API token, store it, register it with the
  *     backend, and send it with every request.
  */
-const EXPECTED_EMAIL = "sapnilm.working@gmail.com";
 const BASE = "http://127.0.0.1:8765";
 const ALARM_PERIOD_MIN = 0.5;
 
@@ -33,13 +32,33 @@ async function ensureToken() {
   return t;
 }
 
+async function getExpectedEmail() {
+  // Cached so a brief backend hiccup doesn't break the gate.
+  const { expectedEmail } = await chrome.storage.local.get("expectedEmail");
+  if (expectedEmail) return expectedEmail;
+  try {
+    const res = await fetch(`${BASE}/api/config`);
+    if (res.ok) {
+      const cfg = await res.json();
+      const email = (cfg.expected_email || "").toLowerCase();
+      if (email) await chrome.storage.local.set({ expectedEmail: email });
+      return email;
+    }
+  } catch {
+    /* backend offline */
+  }
+  return expectedEmail || "";
+}
+
 async function register() {
   const info = await getProfile();
   const email = (info && info.email) ? info.email : "";
+  const expected = await getExpectedEmail();
   // Signed in as a *different* account -> hard block. An empty email means the
   // profile isn't signed in to Chrome at all, so we fall back to the presence
-  // gate (the extension is only installed in this profile).
-  if (email && email.toLowerCase() !== EXPECTED_EMAIL.toLowerCase()) {
+  // gate (the extension is only installed in this profile). If the expected
+  // email isn't known yet (backend config unavailable), fail closed.
+  if (email && (!expected || email !== expected)) {
     return null;
   }
   const token = await ensureToken();

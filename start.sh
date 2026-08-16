@@ -11,4 +11,4 @@ fi
 
 nohup .venv/bin/python server/main.py >/tmp/stopwatch.log 2>&1 &
 echo "[stopwatch] Server started:  http://127.0.0.1:8765"
-echo "[stopwatch] Open that URL in your sapnilm.working@gmail.com Chrome profile and pin the tab."
+echo "[stopwatch] Open that URL in your personal Chrome profile and pin the tab."

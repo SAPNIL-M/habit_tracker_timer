@@ -1,11 +1,11 @@
 """Profile stopwatch backend.
 
-The stopwatch counts time ONLY while the sapnilm.working@gmail.com Chrome
-profile is "active" (the profile has at least one Chrome window open). The
-Chrome extension reports profile activity; the web page also heartbeats while
-visible. If no liveness signal arrives for SIGNAL_TIMEOUT_S, the stopwatch
-pauses (with auto-resume armed). When activity returns, it resumes from where
-it left off.
+The stopwatch counts time ONLY while the authorized Chrome profile is in use.
+The profile is configured in server/config.json (or the STOPWATCH_EMAIL
+environment variable). The Chrome extension reports profile activity; the web
+page also heartbeats while visible. If no liveness signal arrives for
+SIGNAL_TIMEOUT_S, the stopwatch pauses (with auto-resume armed). When activity
+returns, it resumes from where it left off.
 
 State machine:
     status: stopped | running | paused
@@ -14,6 +14,8 @@ State machine:
     accumulated_ms holds everything counted before the current run segment.
 """
 import asyncio
+import json
+import os
 import sqlite3
 import threading
 import time
@@ -30,7 +32,25 @@ BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 DB_PATH = BASE_DIR / "stopwatch.db"
 
-EXPECTED_EMAIL = "sapnilm.working@gmail.com"
+CONFIG_PATH = BASE_DIR / "config.json"
+
+
+def load_expected_email() -> str:
+    """Authorized profile email from STOPWATCH_EMAIL or server/config.json."""
+    env = os.environ.get("STOPWATCH_EMAIL", "").strip()
+    if env:
+        return env.lower()
+    try:
+        cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        email = str(cfg.get("expected_email", "")).strip().lower()
+        if email:
+            return email
+    except Exception:
+        pass
+    return ""
+
+
+EXPECTED_EMAIL = load_expected_email()
 SIGNAL_TIMEOUT_S = 120.0  # no liveness signal for this long -> profile considered left
 TICK_S = 3.0              # watchdog interval
 PORT = 8765
@@ -264,6 +284,12 @@ def health():
     return {"ok": True}
 
 
+@app.get("/api/config")
+def get_config():
+    """Public config the page and extension need before they hold a token."""
+    return {"expected_email": EXPECTED_EMAIL}
+
+
 @app.post("/api/extension/register")
 def register(body: RegisterBody):
     """Register a token for this profile's extension.
@@ -343,6 +369,9 @@ if __name__ == "__main__":
     import uvicorn
 
     init_db()
+    if not EXPECTED_EMAIL:
+        print("WARNING: no expected email configured — create server/config.json")
+        print('         with {"expected_email": "you@gmail.com"} (it is git-ignored).')
     print(f"Profile stopwatch running at  http://127.0.0.1:{PORT}")
-    print(f"Open this URL in the sapnilm.working@gmail.com Chrome profile (pin the tab).")
+    print("Open this URL in the Chrome profile set in server/config.json (pin the tab).")
     uvicorn.run(app, host="127.0.0.1", port=PORT, log_level="info")

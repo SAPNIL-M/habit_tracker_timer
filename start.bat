@@ -12,7 +12,7 @@ rem --- already running? ---
 netstat -ano | findstr ":8765" | findstr "LISTENING" >nul 2>&1
 if not errorlevel 1 (
   echo [stopwatch] The server is ALREADY running.
-  echo [stopwatch] Just open  http://127.0.0.1:8765  in your sapnilm profile.
+  echo [stopwatch] Just open  http://127.0.0.1:8765  in your personal Chrome profile.
   echo.
   pause
   exit /b 0
@@ -39,7 +39,7 @@ if errorlevel 1 (
 )
 
 echo [stopwatch] Starting server... KEEP THIS WINDOW OPEN.
-echo [stopwatch] Open  http://127.0.0.1:8765  in your sapnilm.working@gmail.com Chrome profile.
+echo [stopwatch] Open  http://127.0.0.1:8765  in your personal Chrome profile.
 echo [stopwatch] Press Ctrl+C in this window to stop the server.
 echo.
 ".venv\Scripts\python.exe" server\main.py
